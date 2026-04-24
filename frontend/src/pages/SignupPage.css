@@ -1,0 +1,25 @@
+.signup-card {
+  max-width: 460px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.success-alert {
+  padding: var(--space-3) var(--space-4);
+  background: #dcfce7;
+  color: #16a34a;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  margin-bottom: var(--space-3);
+}
+
+@media (max-width: 480px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}

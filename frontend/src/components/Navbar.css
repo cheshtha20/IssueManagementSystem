@@ -1,0 +1,87 @@
+.navbar {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-sm);
+}
+
+.navbar-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-4);
+  height: 56px;
+  gap: var(--space-6);
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  color: var(--color-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.navbar-brand-icon {
+  color: var(--color-primary);
+  font-size: var(--font-size-lg);
+}
+
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex: 1;
+}
+
+.navbar-link {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  text-decoration: none;
+  padding: var(--space-1) 0;
+  transition: color 0.15s ease;
+}
+
+.navbar-link:hover {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.navbar-user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+}
+
+.navbar-username {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.navbar-role {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 600px) {
+  .navbar-inner {
+    gap: var(--space-3);
+  }
+  .navbar-user-info {
+    display: none;
+  }
+}
