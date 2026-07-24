@@ -73,6 +73,7 @@ export default function CreateTicketPage() {
               <option value="ENHANCEMENT">Enhancement</option>
               <option value="OPERATIONS">Operations</option>
               <option value="NETWORKING">Networking</option>
+              <option value="SERVERS">Servers</option>
             </select>
           </div>
 

@@ -1,86 +1,143 @@
 .user-mgmt-page {
-    padding: 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
+  padding: var(--space-2) 0;
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 .user-mgmt-header {
-    margin-bottom: 2rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-1);
 }
 
 .user-mgmt-header h1 {
-    font-size: 1.875rem;
-    color: #111827;
-    margin-bottom: 0.5rem;
+  font-size: var(--font-size-title); /* 36px title */
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.03em;
+  margin-bottom: 6px;
 }
 
 .user-mgmt-header p {
-    color: #6b7280;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
 }
 
 .user-table-container {
-    background: white;
-    border-radius: 0.75rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card); /* 16px */
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  padding: 8px 0;
 }
 
 .user-table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
 }
 
 .user-table th {
-    background: #f9fafb;
-    padding: 1rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: #6b7280;
-    letter-spacing: 0.05em;
-    border-bottom: 1px solid #e5e7eb;
+  background: var(--color-bg);
+  padding: 14px 20px;
+  font-size: var(--font-size-small);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .user-table td {
-    padding: 1rem;
-    border-bottom: 1px solid #f3f4f6;
-    color: #374151;
-    font-size: 0.875rem;
+  padding: 16px 20px; /* Increased padding */
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: var(--font-size-body);
+  vertical-align: middle;
+}
+
+.user-table tr:hover {
+  background: var(--color-primary-light);
+}
+
+.user-table tr:last-child td {
+  border-bottom: none;
 }
 
 .user-name-cell {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .unverified-tag {
-    font-size: 0.7rem;
-    color: #d97706;
-    font-weight: 500;
+  font-size: var(--font-size-small);
+  color: var(--color-warning);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .role-badge {
-    display: inline-block;
-    padding: 0.25rem 0.5rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: var(--radius-badge);
+  font-size: var(--font-size-small);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+  height: 26px;
+  line-height: 1.1;
 }
 
-.role-admin { background: #fee2e2; color: #991b1b; }
-.role-team_lead { background: #e0e7ff; color: #3730a3; }
-.role-support_engineer { background: #dcfce7; color: #166534; }
-.role-employee { background: #f3f4f6; color: #374151; }
+.role-admin {
+  background: #FEF2F2;
+  color: var(--color-danger);
+  border-color: rgba(239, 68, 68, 0.15);
+}
+
+.role-team_lead {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: rgba(79, 70, 229, 0.15);
+}
+
+.role-support_engineer {
+  background: #FFFBEB;
+  color: var(--color-warning);
+  border-color: rgba(245, 158, 11, 0.15);
+}
+
+.role-employee {
+  background: #ECFDF5;
+  color: var(--color-success);
+  border-color: rgba(34, 197, 94, 0.15);
+}
 
 .role-select-sm {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
-    width: auto;
-    min-width: 150px;
+  padding: 8px 14px;
+  font-size: var(--font-size-body);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-btn);
+  background: var(--color-surface);
+  color: var(--color-text);
+  outline: none;
+  height: 40px;
+  min-width: 180px;
+  cursor: pointer;
+  transition: border-color var(--transition-normal);
+}
+
+.role-select-sm:focus {
+  border-color: var(--color-primary);
 }
 
 .inline-spinner {
-    margin-left: 0.5rem;
-    vertical-align: middle;
+  margin-left: var(--space-1);
+  vertical-align: middle;
 }

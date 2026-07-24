@@ -16,7 +16,9 @@ public class TicketSpecificationBuilder {
 
     public Specification<Ticket> build(TicketSearchCriteria criteria, User actor) {
         return (root, query, cb) -> {
-            query.distinct(true);
+            if (query != null) {
+                query.distinct(true);
+            }
             List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
 
             if (criteria.getKeyword() != null) {

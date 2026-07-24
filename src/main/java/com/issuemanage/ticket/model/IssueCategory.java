@@ -4,5 +4,6 @@ public enum IssueCategory {
     BUG,
     ENHANCEMENT,
     OPERATIONS,
-    NETWORKING
+    NETWORKING,
+    SERVERS
 }

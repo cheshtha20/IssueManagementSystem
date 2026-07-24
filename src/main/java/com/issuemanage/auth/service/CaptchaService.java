@@ -22,6 +22,7 @@ public class CaptchaService {
 
         try {
             String url = String.format("%s?secret=%s&response=%s", RECAPTCHA_VERIFY_URL, captchaSecret, token);
+            @SuppressWarnings({ "unchecked", "null" })
             Map<String, Object> response = restTemplate.postForObject(url, null, Map.class);
             
             if (response == null) return false;

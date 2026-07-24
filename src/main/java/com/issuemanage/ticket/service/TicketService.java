@@ -18,8 +18,12 @@ import com.issuemanage.ticket.model.TicketRemarkType;
 import com.issuemanage.ticket.model.TicketStatus;
 import com.issuemanage.ticket.repository.TicketRemarkRepository;
 import com.issuemanage.ticket.repository.TicketRepository;
+import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.List;
+import com.issuemanage.common.exception.AccessDeniedException;
+import com.issuemanage.common.exception.WorkNotStartedException;
+import com.issuemanage.common.exception.InvalidProgressException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -113,6 +117,7 @@ public class TicketService {
         ticket.setAssignedTo(assignee);
         ticket.setAssignedTeam(assignee.getTeam());
         ticket.setStatus(TicketStatus.ASSIGNED);
+        ticket.setAssignedAt(java.time.LocalDateTime.now());
         Ticket savedTicket = ticketRepository.save(ticket);
 
         TicketRemark remark = new TicketRemark();
@@ -146,6 +151,23 @@ public class TicketService {
 
         if (oldStatus == newStatus) {
             return toResponse(ticket);
+        }
+
+        // Delegate to helper transitions
+        if (newStatus == TicketStatus.IN_PROGRESS) {
+            if (oldStatus == TicketStatus.ASSIGNED) {
+                return startTicket(ticketId, actor);
+            } else if (oldStatus == TicketStatus.ON_HOLD) {
+                return resumeTicket(ticketId, actor);
+            }
+        } else if (newStatus == TicketStatus.ON_HOLD) {
+            return holdTicket(ticketId, actor);
+        } else if (newStatus == TicketStatus.RESOLVED) {
+            return resolveTicket(ticketId, actor);
+        } else if (newStatus == TicketStatus.REOPENED) {
+            return reopenTicket(ticketId, actor);
+        } else if (newStatus == TicketStatus.OPEN && oldStatus == TicketStatus.CLOSED) {
+            return reopenTicket(ticketId, actor);
         }
 
         // --- Role-Based Permission Logic ---
@@ -220,6 +242,196 @@ public class TicketService {
         return toResponse(savedTicket);
     }
 
+    @Transactional
+    public TicketResponse startTicket(String ticketId, User currentUser) {
+        Ticket ticket = ticketRepository.findByTicketId(ticketId)
+                .orElseThrow(() -> new IllegalArgumentException("Ticket not found"));
+        
+        if (ticket.getStatus() != TicketStatus.ASSIGNED) {
+            throw new IllegalArgumentException("Ticket must be in ASSIGNED status to start work.");
+        }
+        
+        if (ticket.getAssignedTo() == null || !ticket.getAssignedTo().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("Only the assigned resolver can start work on this ticket.");
+        }
+        
+        TicketStatus oldStatus = ticket.getStatus();
+        ticket.setStatus(TicketStatus.IN_PROGRESS);
+        ticket.setWorkStartedAt(LocalDateTime.now());
+        ticket.setWorkStartedBy(currentUser);
+        ticket.setNotStartedAlert(false);
+        
+        Ticket savedTicket = ticketRepository.save(ticket);
+        
+        String auditMessage = "Status changed from ASSIGNED to IN_PROGRESS. Work started.";
+        logRemark(savedTicket, currentUser, TicketRemarkType.STATUS_CHANGE, auditMessage);
+        auditLogService.record(
+                savedTicket,
+                currentUser,
+                AuditActionType.STATUS_CHANGED,
+                auditMessage
+        );
+        notificationService.notifyStatusChange(savedTicket, oldStatus);
+        
+        return toResponse(savedTicket);
+    }
+
+    @Transactional
+    public TicketResponse holdTicket(String ticketId, User currentUser) {
+        Ticket ticket = ticketRepository.findByTicketId(ticketId)
+                .orElseThrow(() -> new IllegalArgumentException("Ticket not found"));
+        
+        TicketStatus oldStatus = ticket.getStatus();
+        if (oldStatus != TicketStatus.IN_PROGRESS) {
+            throw new IllegalArgumentException("Ticket must be in IN_PROGRESS status to be put on hold.");
+        }
+        
+        validateWorkflowPermission(ticket, currentUser);
+        
+        ticket.setStatus(TicketStatus.ON_HOLD);
+        ticket.setHoldStartedAt(LocalDateTime.now());
+        
+        Ticket savedTicket = ticketRepository.save(ticket);
+        
+        String auditMessage = "Status changed from IN_PROGRESS to ON_HOLD.";
+        logRemark(savedTicket, currentUser, TicketRemarkType.STATUS_CHANGE, auditMessage);
+        auditLogService.record(
+                savedTicket,
+                currentUser,
+                AuditActionType.STATUS_CHANGED,
+                auditMessage
+        );
+        notificationService.notifyStatusChange(savedTicket, oldStatus);
+        
+        return toResponse(savedTicket);
+    }
+
+    @Transactional
+    public TicketResponse resumeTicket(String ticketId, User currentUser) {
+        Ticket ticket = ticketRepository.findByTicketId(ticketId)
+                .orElseThrow(() -> new IllegalArgumentException("Ticket not found"));
+        
+        TicketStatus oldStatus = ticket.getStatus();
+        if (oldStatus != TicketStatus.ON_HOLD) {
+            throw new IllegalArgumentException("Ticket must be in ON_HOLD status to resume.");
+        }
+        
+        validateWorkflowPermission(ticket, currentUser);
+        
+        long holdMinutes = 0;
+        if (ticket.getHoldStartedAt() != null) {
+            holdMinutes = java.time.Duration.between(ticket.getHoldStartedAt(), LocalDateTime.now()).toMinutes();
+        }
+        ticket.setTotalHoldDuration(ticket.getTotalHoldDuration() + holdMinutes);
+        ticket.setHoldStartedAt(null);
+        ticket.setStatus(TicketStatus.IN_PROGRESS);
+        
+        Ticket savedTicket = ticketRepository.save(ticket);
+        
+        String auditMessage = "Status changed from ON_HOLD to IN_PROGRESS.";
+        logRemark(savedTicket, currentUser, TicketRemarkType.STATUS_CHANGE, auditMessage);
+        auditLogService.record(
+                savedTicket,
+                currentUser,
+                AuditActionType.STATUS_CHANGED,
+                auditMessage
+        );
+        notificationService.notifyStatusChange(savedTicket, oldStatus);
+        
+        return toResponse(savedTicket);
+    }
+
+    @Transactional
+    public TicketResponse resolveTicket(String ticketId, User currentUser) {
+        Ticket ticket = ticketRepository.findByTicketId(ticketId)
+                .orElseThrow(() -> new IllegalArgumentException("Ticket not found"));
+        
+        TicketStatus oldStatus = ticket.getStatus();
+        
+        validateWorkflowPermission(ticket, currentUser);
+        
+        long holdMinutes = 0;
+        if (ticket.getHoldStartedAt() != null) {
+            holdMinutes = java.time.Duration.between(ticket.getHoldStartedAt(), LocalDateTime.now()).toMinutes();
+            ticket.setTotalHoldDuration(ticket.getTotalHoldDuration() + holdMinutes);
+            ticket.setHoldStartedAt(null);
+        }
+        ticket.setStatus(TicketStatus.RESOLVED);
+        ticket.setProgress(100);
+        ticket.setResolvedAt(LocalDateTime.now());
+        
+        Ticket savedTicket = ticketRepository.save(ticket);
+        
+        String auditMessage = "Status changed from " + oldStatus + " to RESOLVED.";
+        logRemark(savedTicket, currentUser, TicketRemarkType.STATUS_CHANGE, auditMessage);
+        auditLogService.record(
+                savedTicket,
+                currentUser,
+                AuditActionType.STATUS_CHANGED,
+                auditMessage
+        );
+        notificationService.notifyStatusChange(savedTicket, oldStatus);
+        
+        return toResponse(savedTicket);
+    }
+
+    @Transactional
+    public TicketResponse reopenTicket(String ticketId, User currentUser) {
+        Ticket ticket = ticketRepository.findByTicketId(ticketId)
+                .orElseThrow(() -> new IllegalArgumentException("Ticket not found"));
+        
+        TicketStatus oldStatus = ticket.getStatus();
+        
+        boolean isAdmin = currentUser.getRole() == Role.ROLE_ADMIN;
+        boolean isEmployee = currentUser.getRole() == Role.ROLE_EMPLOYEE;
+        boolean isRaiser = ticket.getRaisedBy().getId().equals(currentUser.getId());
+        if (!isAdmin && !(isEmployee && isRaiser)) {
+            throw new IllegalArgumentException("Only the ticket raiser or an Admin can reopen the ticket.");
+        }
+        
+        ticket.setStatus(TicketStatus.REOPENED);
+        ticket.setProgress(0);
+        ticket.setWorkStartedAt(null);
+        ticket.setWorkStartedBy(null);
+        ticket.setHoldStartedAt(null);
+        ticket.setTotalHoldDuration(0L);
+        ticket.setNotStartedAlert(false);
+        ticket.setResolvedAt(null);
+        ticket.setAssignedTo(null);
+        ticket.setAssignedTeam(null);
+        
+        Ticket savedTicket = ticketRepository.save(ticket);
+        
+        String auditMessage = "Status changed from " + oldStatus + " to REOPENED.";
+        logRemark(savedTicket, currentUser, TicketRemarkType.STATUS_CHANGE, auditMessage);
+        auditLogService.record(
+                savedTicket,
+                currentUser,
+                AuditActionType.STATUS_CHANGED,
+                auditMessage
+        );
+        notificationService.notifyStatusChange(savedTicket, oldStatus);
+        
+        return toResponse(savedTicket);
+    }
+
+    private void validateWorkflowPermission(Ticket ticket, User currentUser) {
+        boolean isAdmin = currentUser.getRole() == Role.ROLE_ADMIN;
+        boolean isTeamLead = currentUser.getRole() == Role.ROLE_TEAM_LEAD;
+        boolean isSupport = currentUser.getRole() == Role.ROLE_SUPPORT_ENGINEER;
+        boolean isAssignedToActor = ticket.getAssignedTo() != null && ticket.getAssignedTo().getId().equals(currentUser.getId());
+        
+        if (isTeamLead) {
+            // Allowed
+        } else if (isSupport) {
+            if (!isAssignedToActor) {
+                throw new IllegalArgumentException("You can only update the status of tickets assigned to you.");
+            }
+        } else if (!isAdmin) {
+            throw new IllegalArgumentException("You do not have permission to perform this workflow action.");
+        }
+    }
+
     private void validateStrictTransition(TicketStatus current, TicketStatus next) {
         // Prevent skipping steps
         if (current == TicketStatus.OPEN && next == TicketStatus.RESOLVED) {
@@ -279,7 +491,85 @@ public class TicketService {
                 .toList();
     }
 
+    @Transactional
+    public TicketResponse updateProgress(String ticketId, int progress, String actorEmail) {
+        Ticket ticket = ticketRepository.findByTicketId(ticketId)
+                .orElseThrow(() -> new com.issuemanage.common.exception.TicketNotFoundException("Ticket not found with ID: " + ticketId));
+        User currentUser = userRepository.findByEmail(actorEmail.toLowerCase())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if (ticket.getStatus() == TicketStatus.CLOSED || ticket.getStatus() == TicketStatus.CANCELLED) {
+            throw new com.issuemanage.common.exception.InvalidOperationException("Cannot update progress of a closed or cancelled ticket.");
+        }
+
+        // Auto-repair legacy tickets
+        if (ticket.getWorkStartedAt() == null) {
+            if (ticket.getStatus() == TicketStatus.IN_PROGRESS || ticket.getStatus() == TicketStatus.ON_HOLD || ticket.getStatus() == TicketStatus.RESOLVED) {
+                ticket.setWorkStartedAt(ticket.getAssignedAt() != null ? ticket.getAssignedAt() : ticket.getCreatedAt());
+                if (ticket.getWorkStartedBy() == null) {
+                    ticket.setWorkStartedBy(ticket.getAssignedTo());
+                }
+            } else {
+                throw new WorkNotStartedException("Work has not been started on this ticket yet.");
+            }
+        }
+
+        // Only the assigned resolver (SUPPORT_ENGINEER) can update the progress slider
+        boolean isAllowed = false;
+        if (currentUser.getRole() == Role.ROLE_SUPPORT_ENGINEER) {
+            if (ticket.getAssignedTo() != null && ticket.getAssignedTo().getId().equals(currentUser.getId())) {
+                isAllowed = true;
+            }
+        }
+
+        if (!isAllowed) {
+            throw new AccessDeniedException("You do not have permission to update progress on this ticket.");
+        }
+
+        if (progress < 0 || progress > 100) {
+            throw new InvalidProgressException("Progress must be between 0 and 100.");
+        }
+
+        if (progress < ticket.getProgress()) {
+            throw new InvalidProgressException("Progress cannot be moved backwards.");
+        }
+
+        ticket.setProgress(progress);
+        Ticket savedTicket = ticketRepository.save(ticket);
+
+        logRemark(savedTicket, currentUser, TicketRemarkType.STATUS_CHANGE, "Progress updated to " + progress + "%.");
+        auditLogService.record(
+                savedTicket,
+                currentUser,
+                AuditActionType.TICKET_UPDATED,
+                "Progress updated to " + progress + "%."
+        );
+
+        return toResponse(savedTicket);
+    }
+
     private TicketResponse toResponse(Ticket ticket) {
+        long waitingTime = 0L;
+        if (ticket.getAssignedAt() != null) {
+            LocalDateTime end = ticket.getWorkStartedAt() != null ? ticket.getWorkStartedAt() : LocalDateTime.now();
+            waitingTime = java.time.Duration.between(ticket.getAssignedAt(), end).toMinutes();
+        }
+        
+        long totalHold = ticket.getTotalHoldDuration() != null ? ticket.getTotalHoldDuration() : 0L;
+        if (ticket.getHoldStartedAt() != null) {
+            totalHold += java.time.Duration.between(ticket.getHoldStartedAt(), LocalDateTime.now()).toMinutes();
+        }
+        
+        long activeWork = 0L;
+        if (ticket.getWorkStartedAt() != null) {
+            LocalDateTime end = ticket.getResolvedAt() != null ? ticket.getResolvedAt() : LocalDateTime.now();
+            long elapsed = java.time.Duration.between(ticket.getWorkStartedAt(), end).toMinutes();
+            activeWork = elapsed - totalHold;
+            if (activeWork < 0) {
+                activeWork = 0L;
+            }
+        }
+
         return new TicketResponse(
                 ticket.getTicketId(),
                 ticket.getTitle(),
@@ -292,7 +582,14 @@ public class TicketService {
                 ticket.getRaisedBy().getEmail(),
                 ticket.getAssignedTeam() == null ? null : ticket.getAssignedTeam().name(),
                 ticket.getAssignedTo() == null ? null : ticket.getAssignedTo().getUsername(),
-                ticket.getCreatedAt()
+                ticket.getCreatedAt(),
+                ticket.getProgress(),
+                ticket.getAssignedAt(),
+                ticket.getWorkStartedAt(),
+                ticket.getWorkStartedBy() == null ? null : ticket.getWorkStartedBy().getUsername(),
+                waitingTime,
+                activeWork,
+                totalHold
         );
     }
 }

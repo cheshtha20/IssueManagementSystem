@@ -7,5 +7,6 @@ public enum AuditActionType {
     TICKET_REROUTED,
     REMARK_ADDED,
     RESOLUTION_ADDED,
-    STATUS_CHANGED
+    STATUS_CHANGED,
+    TICKET_UPDATED
 }

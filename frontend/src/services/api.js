@@ -183,14 +183,35 @@ export async function rerouteTicket(ticketId, data) {
   });
 }
 
-/**
- * Update a ticket's status (ADMIN, MANAGER, TEAM_LEAD, ASSIGNEE).
- */
 export async function updateTicketStatus(ticketId, status) {
   return request(`${API_BASE}/tickets/${ticketId}/status`, {
     method: 'POST',
     body: JSON.stringify({ status }),
   });
+}
+
+/**
+ * Update ticket progress (SUPPORT_ENGINEER only).
+ */
+export async function updateTicketProgress(ticketId, progress) {
+  return request(`${API_BASE}/tickets/${ticketId}/progress`, {
+    method: 'PATCH',
+    body: JSON.stringify({ progress }),
+  });
+}
+
+/**
+ * Get dashboard stats summary.
+ */
+export async function getDashboardSummary() {
+  return request(`${API_BASE}/dashboard/summary`);
+}
+
+/**
+ * Get detailed work SLA timings status list.
+ */
+export async function getWorkStatus() {
+  return request(`${API_BASE}/dashboard/work-status`);
 }
 
 export async function getAvailableAssignees(ticketId) {

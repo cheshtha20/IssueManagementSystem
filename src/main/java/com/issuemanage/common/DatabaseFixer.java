@@ -25,8 +25,15 @@ public class DatabaseFixer implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE audit_log DROP CONSTRAINT IF EXISTS audit_log_action_type_check");
             jdbcTemplate.execute("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check");
             jdbcTemplate.execute("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_team_check");
+            jdbcTemplate.execute("ALTER TABLE tickets DROP CONSTRAINT IF EXISTS tickets_status_check");
+            jdbcTemplate.execute("ALTER TABLE tickets DROP CONSTRAINT IF EXISTS tickets_category_check");
+            jdbcTemplate.execute("DROP TABLE IF EXISTS routing_rules CASCADE");
             
-            // Dropped old constraints here
+            // Migrate REOPENED ticket status to IN_PROGRESS
+            int reopenedCount = jdbcTemplate.update("UPDATE tickets SET status = 'IN_PROGRESS' WHERE status = 'REOPENED'");
+            if (reopenedCount > 0) {
+                logger.info("Migrated {} tickets from decommissioned status REOPENED to IN_PROGRESS.", reopenedCount);
+            }
             
             // Migrate old ROLE_MANAGER to ROLE_TEAM_LEAD
             int updatedCount = jdbcTemplate.update("UPDATE users SET role = 'ROLE_TEAM_LEAD' WHERE role = 'ROLE_MANAGER'");
@@ -45,6 +52,19 @@ public class DatabaseFixer implements CommandLineRunner {
             if (assigneeCount > 0) {
                 logger.info("Migrated {} users from ROLE_ASSIGNEE to ROLE_SUPPORT_ENGINEER.", assigneeCount);
             }
+
+            // Ticket Progress & Work Tracking columns
+            jdbcTemplate.execute("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS progress INTEGER NOT NULL DEFAULT 0");
+            jdbcTemplate.execute("ALTER TABLE tickets DROP CONSTRAINT IF EXISTS check_progress");
+            jdbcTemplate.execute("ALTER TABLE tickets ADD CONSTRAINT check_progress CHECK (progress >= 0 AND progress <= 100)");
+            
+            jdbcTemplate.execute("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMP");
+            jdbcTemplate.execute("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS work_started_at TIMESTAMP");
+            jdbcTemplate.execute("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS work_started_by BIGINT REFERENCES users(id)");
+            jdbcTemplate.execute("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS hold_started_at TIMESTAMP");
+            jdbcTemplate.execute("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS total_hold_duration BIGINT DEFAULT 0");
+            jdbcTemplate.execute("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS not_started_alert BOOLEAN DEFAULT FALSE");
+            jdbcTemplate.execute("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMP");
             
             logger.info("Successfully checked and updated database state.");
         } catch (Exception e) {

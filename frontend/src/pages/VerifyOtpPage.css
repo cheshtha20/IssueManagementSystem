@@ -2,78 +2,87 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 64px);
-  padding: 2rem;
-  background-color: var(--bg-secondary);
+  min-height: 100vh;
+  padding: var(--space-4);
+  background-color: var(--color-bg);
+  background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 .verify-otp-card {
   width: 100%;
-  max-width: 400px;
-  padding: 2.5rem;
-  background-color: var(--bg-primary);
-  border-radius: 1rem;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  max-width: 440px;
+  padding: var(--space-4);
+  background-color: var(--color-surface);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
   text-align: center;
 }
 
 .verify-otp-header h1 {
-  font-size: 1.5rem;
+  font-size: var(--font-size-section);
   font-weight: 700;
-  margin-bottom: 0.5rem;
-  color: var(--text-primary);
+  margin-bottom: 8px;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
 }
 
 .verify-otp-header p {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  margin-bottom: 2rem;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+  margin-bottom: var(--space-4);
 }
 
 .otp-input-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-3);
 }
 
 .otp-input {
   width: 100%;
   text-align: center;
-  font-size: 2rem;
-  letter-spacing: 0.5rem;
+  font-size: 1.875rem;
+  letter-spacing: 0.3em;
   font-weight: 700;
-  padding: 0.75rem;
-  border: 2px solid var(--border-color);
-  border-radius: 0.5rem;
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  transition: border-color 0.2s;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-btn);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  transition: all var(--transition-normal);
 }
 
 .otp-input:focus {
   outline: none;
-  border-color: var(--primary-color);
-  background-color: var(--bg-primary);
+  border-color: var(--color-primary);
+  background-color: var(--color-surface);
 }
 
 .resend-section {
-  margin-top: 1.5rem;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+  margin-top: var(--space-3);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
 }
 
 .resend-btn {
   background: none;
   border: none;
-  color: var(--primary-color);
+  color: var(--color-primary);
   font-weight: 600;
   cursor: pointer;
   padding: 0;
-  margin-left: 0.25rem;
+  margin-left: 6px;
   text-decoration: underline;
+  transition: color var(--transition-normal);
+}
+
+.resend-btn:hover {
+  color: var(--color-primary-hover);
 }
 
 .resend-btn:disabled {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   cursor: not-allowed;
   text-decoration: none;
+  opacity: 0.5;
 }

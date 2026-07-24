@@ -1,58 +1,423 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4); /* Increased vertical spacing */
+}
+
 .dashboard-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-3); /* Increased padding */
+  margin-bottom: var(--space-2);
   gap: var(--space-4);
+  flex-wrap: wrap;
 }
 
 .dashboard-title {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-title); /* 36px */
   font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.03em;
 }
 
 .dashboard-subtitle {
   color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-body);
   margin-top: var(--space-1);
 }
 
-.dashboard-filters {
+/* Metrics Cards Grid */
+.dashboard-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-3); /* Increased gap */
+}
+
+.metric-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card); /* 16px */
+  padding: 24px; /* Increased internal padding to 24px */
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-bottom: var(--space-5);
-  flex-wrap: wrap;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.25s ease, box-shadow 0.25s ease; /* Hover transition */
+  min-height: 110px; /* Equal height cards */
 }
 
-.filter-search {
-  flex: 1;
-  min-width: 200px;
+.metric-card:hover {
+  transform: translateY(-3px); /* Hover translateY(-3px) */
+  box-shadow: var(--shadow-hover);
 }
 
-.filter-select {
-  min-width: 140px;
+.metric-icon {
+  width: 48px; /* Icon size around 48px */
+  height: 48px;
+  border-radius: var(--radius-btn);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
 }
 
-.ticket-list {
+.metric-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-value {
+  font-size: var(--font-size-card-num); /* 36px */
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-text);
+}
+
+.metric-label {
+  font-size: var(--font-size-card-lbl); /* 15px */
+  color: var(--color-text-secondary);
+  font-weight: 500; /* Medium weight */
+  margin-top: 4px;
+}
+
+/* Specific card colors - subtle borders */
+.metric-card.total { border-color: rgba(79, 70, 229, 0.2); }
+.metric-card.total .metric-icon {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.metric-card.open { border-color: rgba(59, 130, 246, 0.2); }
+.metric-card.open .metric-icon {
+  background: #EFF6FF;
+  color: var(--color-info);
+}
+
+.metric-card.in-progress { border-color: rgba(245, 158, 11, 0.2); }
+.metric-card.in-progress .metric-icon {
+  background: #FFFBEB;
+  color: var(--color-warning);
+}
+
+.metric-card.resolved { border-color: rgba(34, 197, 94, 0.2); }
+.metric-card.resolved .metric-icon {
+  background: #ECFDF5;
+  color: var(--color-success);
+}
+
+.metric-card.not-started-alert {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+.metric-card.not-started-alert .metric-icon {
+  background: #FEF2F2;
+  color: var(--color-danger);
+}
+
+/* Visuals Section (overall work completion side-by-side) */
+.dashboard-visuals-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+@media (max-width: 900px) {
+  .dashboard-visuals-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.visual-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card); /* 16px */
+  padding: 24px; /* Increased internal padding */
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+}
+
+.visual-card-title {
+  font-size: var(--font-size-card-lbl);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  align-self: flex-start;
+  margin-bottom: 24px;
+}
+
+.linear-progress-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: var(--space-3);
+  justify-content: center;
+}
+
+.linear-progress-stat {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--color-success);
+  text-align: center;
+}
+
+.linear-progress-track {
+  width: 100%;
+  height: 12px; /* Increased height */
+  border-radius: var(--radius-badge); /* Round edges */
+  background: var(--color-bg);
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--color-border);
+}
+
+.linear-progress-fill {
+  height: 100%;
+  background: var(--color-success);
+  border-radius: var(--radius-badge);
+}
+
+.linear-progress-desc {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* WBS Structure Card styling */
+.breakdown-table-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card); /* 16px */
+  padding: 24px; /* Increased padding */
+  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 }
 
-@media (max-width: 600px) {
-  .dashboard-header {
-    flex-direction: column;
-    align-items: stretch;
+.table-title-area {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.table-title {
+  font-size: var(--font-size-section); /* 24px */
+  font-weight: 600;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+}
+
+.ticket-progress-table {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-btn);
+  overflow: hidden;
+}
+
+/* WBS Column Width Percentages:
+   Ticket ID : 18%
+   Title : 35%
+   Assignee : 18%
+   Status : 14%
+   Progress : 15%
+*/
+.ticket-progress-header {
+  display: grid;
+  grid-template-columns: 18% 35% 18% 14% 15%; /* Balanced widths */
+  padding: 14px 20px; /* Increased padding */
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  align-items: center;
+}
+
+.ticket-progress-row {
+  display: grid;
+  grid-template-columns: 18% 35% 18% 14% 15%; /* Balanced widths */
+  padding: 16px 20px; /* Increased row height and padding */
+  border-bottom: 1px solid var(--color-border);
+  align-items: center; /* Vertically centered */
+  cursor: pointer;
+  transition: background var(--transition-normal);
+  font-size: var(--font-size-body);
+}
+
+.ticket-progress-row:hover {
+  background: var(--color-primary-light);
+}
+
+.ticket-progress-row:last-child {
+  border-bottom: none;
+}
+
+.progress-row-id {
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.progress-row-title {
+  color: var(--color-text);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.progress-row-assignee {
+  color: var(--color-text-secondary);
+}
+
+.assignee-tag {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  padding: 4px 10px;
+  border-radius: var(--radius-btn);
+  font-size: var(--font-size-small);
+  font-weight: 500;
+}
+
+.unassigned-tag {
+  color: var(--color-text-secondary);
+  font-style: italic;
+  font-size: var(--font-size-small);
+}
+
+.progress-row-bar-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.row-progress-text {
+  font-weight: 700;
+  font-size: var(--font-size-small);
+  width: 38px;
+  color: var(--color-text);
+}
+
+.row-progress-bar-wrapper {
+  flex: 1;
+  height: 10px; /* Increased height */
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-badge); /* Rounded edges */
+  overflow: hidden;
+}
+
+.row-progress-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+}
+
+/* Detailed Timing Work Status Table */
+.work-status-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.work-status-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: var(--font-size-body);
+}
+
+.work-status-table th {
+  background: var(--color-bg);
+  padding: 14px 16px; /* Increased padding */
+  font-weight: 600;
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.work-status-table td {
+  padding: 16px 16px; /* Increased cell padding */
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  vertical-align: middle; /* Vertically centered */
+}
+
+.work-status-table tr:hover {
+  background: var(--color-primary-light);
+}
+
+.work-status-table tr.alert-row {
+  background: #FEF2F2;
+}
+
+.work-status-table tr.alert-row:hover {
+  background: #FEE2E2;
+}
+
+.delay-alert-badge {
+  background: #FEE2E2;
+  color: var(--color-danger);
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: var(--radius-btn);
+  font-size: 11px;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+/* Search Page Filter Options alignment:
+   Search bar: 50-60% width (set to 55%)
+   Status and Priority Dropdowns: equal width (20% each)
+   Search button aligned perfectly (10%)
+*/
+.dashboard-filters {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3); /* Increased vertical spacing */
+  width: 100%;
+}
+
+.filter-search {
+  width: 55%;
+  flex: none;
+  height: 44px;
+}
+
+.filter-select {
+  width: 20%;
+  flex: none;
+  height: 44px;
+  cursor: pointer;
+}
+
+.dashboard-filters .btn {
+  width: 10%;
+  flex: none;
+  height: 44px;
+}
+
+.ticket-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2); /* 16px spacing */
+}
+
+@media (max-width: 768px) {
+  .ticket-progress-header {
+    display: none;
   }
 
-  .dashboard-filters {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .filter-search,
-  .filter-select {
-    min-width: auto;
+  .ticket-progress-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 16px;
   }
 }

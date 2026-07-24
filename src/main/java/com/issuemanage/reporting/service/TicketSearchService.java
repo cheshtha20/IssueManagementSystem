@@ -42,6 +42,27 @@ public class TicketSearchService {
     }
 
     private TicketResponse toResponse(Ticket ticket) {
+        long waitingTime = 0L;
+        if (ticket.getAssignedAt() != null) {
+            java.time.LocalDateTime end = ticket.getWorkStartedAt() != null ? ticket.getWorkStartedAt() : java.time.LocalDateTime.now();
+            waitingTime = java.time.Duration.between(ticket.getAssignedAt(), end).toMinutes();
+        }
+        
+        long totalHold = ticket.getTotalHoldDuration() != null ? ticket.getTotalHoldDuration() : 0L;
+        if (ticket.getHoldStartedAt() != null) {
+            totalHold += java.time.Duration.between(ticket.getHoldStartedAt(), java.time.LocalDateTime.now()).toMinutes();
+        }
+        
+        long activeWork = 0L;
+        if (ticket.getWorkStartedAt() != null) {
+            java.time.LocalDateTime end = ticket.getResolvedAt() != null ? ticket.getResolvedAt() : java.time.LocalDateTime.now();
+            long elapsed = java.time.Duration.between(ticket.getWorkStartedAt(), end).toMinutes();
+            activeWork = elapsed - totalHold;
+            if (activeWork < 0) {
+                activeWork = 0L;
+            }
+        }
+
         return new TicketResponse(
                 ticket.getTicketId(),
                 ticket.getTitle(),
@@ -54,7 +75,14 @@ public class TicketSearchService {
                 ticket.getRaisedBy().getEmail(),
                 ticket.getAssignedTeam() == null ? null : ticket.getAssignedTeam().name(),
                 ticket.getAssignedTo() == null ? null : ticket.getAssignedTo().getUsername(),
-                ticket.getCreatedAt()
+                ticket.getCreatedAt(),
+                ticket.getProgress(),
+                ticket.getAssignedAt(),
+                ticket.getWorkStartedAt(),
+                ticket.getWorkStartedBy() == null ? null : ticket.getWorkStartedBy().getUsername(),
+                waitingTime,
+                activeWork,
+                totalHold
         );
     }
 }

@@ -99,6 +99,50 @@ public class NotificationService {
                 .toList();
     }
 
+    @Async
+    @Transactional
+    public void notifyTeamLeadOfDelay(Ticket ticket) {
+        if (ticket.getAssignedTeam() == null) {
+            return;
+        }
+
+        List<User> leads = userRepository.findByRoleAndTeamAndEnabledTrue(
+                com.issuemanage.auth.model.Role.ROLE_TEAM_LEAD, ticket.getAssignedTeam());
+
+        for (User lead : leads) {
+            // In-App Alert
+            InAppAlert alert = new InAppAlert();
+            alert.setRecipient(lead);
+            alert.setTicket(ticket);
+            alert.setMessage("Ticket " + ticket.getTicketId() + " has not been started for over 4 hours.");
+            alert.setDirectLink(buildTicketLink(ticket));
+            alert.setRead(false);
+            inAppAlertRepository.save(alert);
+
+            // Email Notification
+            String subject = "SLA Breach Alert: Ticket Not Started - " + ticket.getTicketId();
+            String body = """
+                    Ticket %s has not been started by the assignee for over 4 hours.
+                    
+                    Ticket ID: %s
+                    Title: %s
+                    Priority: %s
+                    Assigned To: %s
+                    
+                    Link: %s
+                    """.formatted(
+                    ticket.getTicketId(),
+                    ticket.getTicketId(),
+                    ticket.getTitle(),
+                    ticket.getPriority().name(),
+                    ticket.getAssignedTo() != null ? ticket.getAssignedTo().getUsername() : "Unassigned",
+                    buildTicketLink(ticket)
+            );
+
+            sendEmailWithRetry(lead.getEmail(), subject, body, "TICKET_DELAY_WARNING", ticket.getTicketId());
+        }
+    }
+
     private void createInAppAlert(Ticket ticket, User resolver) {
         InAppAlert alert = new InAppAlert();
         alert.setRecipient(resolver);

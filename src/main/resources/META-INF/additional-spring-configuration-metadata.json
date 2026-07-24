@@ -1,0 +1,44 @@
+{
+  "properties": [
+    {
+      "name": "security.jwt.secret",
+      "type": "java.lang.String",
+      "description": "Secret key for generating and validating JWT tokens."
+    },
+    {
+      "name": "security.jwt.expiration-ms",
+      "type": "java.lang.Long",
+      "description": "JWT token expiration duration in milliseconds."
+    },
+    {
+      "name": "app.otp.expiry-minutes",
+      "type": "java.lang.Integer",
+      "description": "Time duration in minutes for which OTP remains valid."
+    },
+    {
+      "name": "app.mail.from",
+      "type": "java.lang.String",
+      "description": "Email address to use as the sender for outbound mail notifications."
+    },
+    {
+      "name": "app.notifications.ticket-base-url",
+      "type": "java.lang.String",
+      "description": "Base URL for tickets, used in email/notification links."
+    },
+    {
+      "name": "app.notifications.retry-base-delay-ms",
+      "type": "java.lang.Long",
+      "description": "Base delay in milliseconds for retrying failed notification dispatches."
+    },
+    {
+      "name": "app.captcha.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enables or disables reCAPTCHA validation on authentication requests."
+    },
+    {
+      "name": "google.recaptcha.secret",
+      "type": "java.lang.String",
+      "description": "Secret key for Google reCAPTCHA server-side validation."
+    }
+  ]
+}

@@ -72,6 +72,31 @@ public class Ticket {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "progress", nullable = false)
+    private Integer progress = 0;
+
+    @Column(name = "assigned_at")
+    private LocalDateTime assignedAt;
+
+    @Column(name = "work_started_at")
+    private LocalDateTime workStartedAt;
+
+    @Column(name = "hold_started_at")
+    private LocalDateTime holdStartedAt;
+
+    @Column(name = "total_hold_duration")
+    private Long totalHoldDuration = 0L;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "work_started_by")
+    private User workStartedBy;
+
+    @Column(name = "not_started_alert")
+    private Boolean notStartedAlert = false;
+
+    @Column(name = "resolved_at")
+    private LocalDateTime resolvedAt;
+
     @PrePersist
     public void onCreate() {
         LocalDateTime now = LocalDateTime.now();
@@ -190,5 +215,69 @@ public class Ticket {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public Integer getProgress() {
+        return progress;
+    }
+
+    public void setProgress(Integer progress) {
+        this.progress = progress;
+    }
+
+    public LocalDateTime getAssignedAt() {
+        return assignedAt;
+    }
+
+    public void setAssignedAt(LocalDateTime assignedAt) {
+        this.assignedAt = assignedAt;
+    }
+
+    public LocalDateTime getWorkStartedAt() {
+        return workStartedAt;
+    }
+
+    public void setWorkStartedAt(LocalDateTime workStartedAt) {
+        this.workStartedAt = workStartedAt;
+    }
+
+    public LocalDateTime getHoldStartedAt() {
+        return holdStartedAt;
+    }
+
+    public void setHoldStartedAt(LocalDateTime holdStartedAt) {
+        this.holdStartedAt = holdStartedAt;
+    }
+
+    public Long getTotalHoldDuration() {
+        return totalHoldDuration == null ? 0L : totalHoldDuration;
+    }
+
+    public void setTotalHoldDuration(Long totalHoldDuration) {
+        this.totalHoldDuration = totalHoldDuration;
+    }
+
+    public User getWorkStartedBy() {
+        return workStartedBy;
+    }
+
+    public void setWorkStartedBy(User workStartedBy) {
+        this.workStartedBy = workStartedBy;
+    }
+
+    public Boolean getNotStartedAlert() {
+        return notStartedAlert == null ? false : notStartedAlert;
+    }
+
+    public void setNotStartedAlert(Boolean notStartedAlert) {
+        this.notStartedAlert = notStartedAlert;
+    }
+
+    public LocalDateTime getResolvedAt() {
+        return resolvedAt;
+    }
+
+    public void setResolvedAt(LocalDateTime resolvedAt) {
+        this.resolvedAt = resolvedAt;
     }
 }

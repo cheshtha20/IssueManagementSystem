@@ -15,10 +15,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.issuemanage.ticket.dto.ProgressUpdateRequest;
 
 @RestController
 @RequestMapping("/api/tickets")
@@ -78,5 +80,13 @@ public class TicketController {
     @PreAuthorize("hasAnyRole('ADMIN', 'TEAM_LEAD')")
     public ResponseEntity<List<UserResponse>> getAvailableAssignees(@PathVariable String ticketId) {
         return ResponseEntity.ok(ticketService.getAvailableAssignees(ticketId));
+    }
+
+    @PatchMapping("/{ticketId}/progress")
+    @PreAuthorize("hasRole('SUPPORT_ENGINEER')")
+    public ResponseEntity<TicketResponse> updateProgress(@PathVariable String ticketId,
+                                                         @Valid @RequestBody ProgressUpdateRequest request,
+                                                         Authentication authentication) {
+        return ResponseEntity.ok(ticketService.updateProgress(ticketId, request.getProgress(), authentication.getName()));
     }
 }

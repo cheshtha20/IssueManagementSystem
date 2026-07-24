@@ -1,14 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getTicket, assignTicket, updateTicketStatus, getComments, getRemarks, getAvailableAssignees, getAllAssignees } from '../services/api';
+import { getTicket, assignTicket, updateTicketStatus, getComments, getRemarks, getAllAssignees } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import CommentSection from '../components/CommentSection';
+import ProgressSlider from '../components/ProgressSlider';
 import './TicketDetailPage.css';
 
-/**
- * TicketDetailPage — shows full details of a single ticket,
- * with actions (assign, reroute) and comments/remarks sections.
- */
 export default function TicketDetailPage() {
   const { ticketId } = useParams();
   const navigate = useNavigate();
@@ -34,7 +31,6 @@ export default function TicketDetailPage() {
   const [statusUpdateError, setStatusUpdateError] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
 
-  /** Fetch ticket data by searching for it via keyword (ticketId) */
   const fetchTicket = useCallback(async () => {
     try {
       const data = await getTicket(ticketId);
@@ -44,7 +40,6 @@ export default function TicketDetailPage() {
     }
   }, [ticketId]);
 
-  /** Fetch comments and remarks */
   const fetchConversation = useCallback(async () => {
     try {
       const [c, r] = await Promise.all([
@@ -54,12 +49,10 @@ export default function TicketDetailPage() {
       setComments(c || []);
       setRemarks(r || []);
     } catch (err) {
-      // Non-fatal — comments may fail if user lacks access
       console.error('Failed to load conversation:', err);
     }
   }, [ticketId]);
 
-  /** Load all data on mount */
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -86,16 +79,13 @@ export default function TicketDetailPage() {
     loadAssignees();
   }, [ticket, hasRole]);
 
-  /** Set initial selected status when ticket loads */
   useEffect(() => {
     if (ticket) {
       setSelectedStatus(ticket.status);
-      // Auto-hide assignment form if already assigned
       setShowAssignForm(!ticket.assignedTo);
     }
   }, [ticket]);
 
-  /** Handle ticket assignment */
   async function handleAssign(e) {
     e.preventDefault();
     setAssigning(true);
@@ -105,7 +95,7 @@ export default function TicketDetailPage() {
       await assignTicket(ticketId, assignEmail);
       setAssignSuccess(`Ticket assigned to ${assignEmail}`);
       setAssignEmail('');
-      fetchTicket(); // refresh ticket data
+      fetchTicket();
     } catch (err) {
       setAssignError(err.message);
     } finally {
@@ -115,7 +105,7 @@ export default function TicketDetailPage() {
   }
 
   async function handleStatusUpdate(e) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!selectedStatus || selectedStatus === ticket.status) return;
 
     setUpdatingStatus(true);
@@ -130,6 +120,20 @@ export default function TicketDetailPage() {
       setUpdatingStatus(false);
     }
   }
+
+  const handleQuickStatusChange = async (newStatus) => {
+    setUpdatingStatus(true);
+    setStatusUpdateError('');
+    try {
+      await updateTicketStatus(ticketId, newStatus);
+      await fetchTicket();
+      await fetchConversation();
+    } catch (err) {
+      setStatusUpdateError(err.message);
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -153,6 +157,9 @@ export default function TicketDetailPage() {
 
   if (!ticket) return null;
 
+  const isAssignedResolver = user && ticket.assignedTo === user.username && hasRole('SUPPORT_ENGINEER');
+  const isSliderEditable = isAssignedResolver && (ticket.status === 'IN_PROGRESS' || ticket.status === 'ON_HOLD');
+
   const statusClass = `badge badge-${ticket.status?.toLowerCase()}`;
   const priorityClass = `badge badge-${ticket.priority?.toLowerCase()}`;
 
@@ -171,6 +178,52 @@ export default function TicketDetailPage() {
         </div>
         <div className="ticket-detail-id">{ticket.ticketId}</div>
       </div>
+
+      {/* Progress Slider (Only for Support Engineers when work is active) */}
+      <ProgressSlider
+        ticketId={ticket.ticketId}
+        initialProgress={ticket.progress || 0}
+        isEditable={isSliderEditable}
+        onProgressUpdate={(updatedTicket) => {
+          setTicket(updatedTicket);
+          if (updatedTicket.progress === 100 && ticket.status === 'IN_PROGRESS') {
+            handleQuickStatusChange('RESOLVED');
+          }
+        }}
+      />
+
+      {/* SLA Action Cards for Support Engineer */}
+      {isAssignedResolver && ticket.status === 'ASSIGNED' && (
+        <div className="quick-action-sla-card start-work">
+          <div className="sla-card-content">
+            <h4>⚡ SLA Timer Pending Start</h4>
+            <p>You have been assigned this ticket. Click below to mark work as started and initialize the active SLA timer.</p>
+          </div>
+          <button
+            className="btn btn-success btn-lg"
+            onClick={() => handleQuickStatusChange('IN_PROGRESS')}
+            disabled={updatingStatus}
+          >
+            {updatingStatus ? 'Starting...' : '⚡ Start Working'}
+          </button>
+        </div>
+      )}
+
+      {isAssignedResolver && ticket.status === 'ON_HOLD' && (
+        <div className="quick-action-sla-card resume-work">
+          <div className="sla-card-content">
+            <h4>⏸ Work Currently On Hold</h4>
+            <p>This ticket is currently paused. Resume working to continue the SLA timer.</p>
+          </div>
+          <button
+            className="btn btn-primary btn-lg"
+            onClick={() => handleQuickStatusChange('IN_PROGRESS')}
+            disabled={updatingStatus}
+          >
+            {updatingStatus ? 'Resuming...' : '▶ Resume Work'}
+          </button>
+        </div>
+      )}
 
       {/* Info grid */}
       <div className="ticket-info-grid">
@@ -204,6 +257,41 @@ export default function TicketDetailPage() {
         </div>
       </div>
 
+      {/* SLA Timeline Grid */}
+      {ticket.assignedAt && (
+        <div className="ticket-timeline-card">
+          <h3 className="section-title">Work Timeline & SLA</h3>
+          <div className="timeline-grid">
+            <div className="timeline-item">
+              <span className="timeline-label">Assigned At</span>
+              <span className="timeline-value">{formatDate(ticket.assignedAt)}</span>
+            </div>
+            <div className="timeline-item">
+              <span className="timeline-label">Work Started At</span>
+              <span className="timeline-value">{formatDate(ticket.workStartedAt) || 'Not Started'}</span>
+            </div>
+            {ticket.resolvedAt && (
+              <div className="timeline-item">
+                <span className="timeline-label">Resolved At</span>
+                <span className="timeline-value">{formatDate(ticket.resolvedAt)}</span>
+              </div>
+            )}
+            <div className="timeline-item highlight">
+              <span className="timeline-label">Waiting Time before start</span>
+              <span className="timeline-value">⏳ {ticket.waitingTimeMinutes} min</span>
+            </div>
+            <div className="timeline-item highlight">
+              <span className="timeline-label">Active Work Time</span>
+              <span className="timeline-value">⚡ {ticket.activeWorkTimeMinutes} min</span>
+            </div>
+            <div className="timeline-item">
+              <span className="timeline-label">Total Hold Duration</span>
+              <span className="timeline-value">⏸ {ticket.totalHoldDurationMinutes} min</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Description */}
       {ticket.description && (
         <div className="ticket-description">
@@ -221,7 +309,7 @@ export default function TicketDetailPage() {
             {assignSuccess && <div className="success-alert">{assignSuccess}</div>}
             {assignError && <div className="error-alert">{assignError}</div>}
             {assigneeLoadError && <div className="error-alert">{assigneeLoadError}</div>}
-            
+
             {showAssignForm ? (
               <form className="action-form" onSubmit={handleAssign}>
                 {availableAssignees.length > 0 ? (
@@ -265,8 +353,8 @@ export default function TicketDetailPage() {
                     {assigning ? <span className="spinner" /> : 'Confirm Assignment'}
                   </button>
                   {ticket.assignedTo && (
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       className="btn btn-secondary btn-sm"
                       onClick={() => setShowAssignForm(false)}
                     >
@@ -278,8 +366,8 @@ export default function TicketDetailPage() {
             ) : (
               <div className="assignment-summary">
                 <span>Currently assigned to <strong>{ticket.assignedTo}</strong></span>
-                <button 
-                  className="btn btn-secondary btn-sm" 
+                <button
+                  className="btn btn-secondary btn-sm"
                   onClick={() => setShowAssignForm(true)}
                   style={{ marginLeft: '1rem' }}
                 >
@@ -289,7 +377,6 @@ export default function TicketDetailPage() {
             )}
           </div>
         )}
-
 
         {/* Update Status (admin/manager/lead/support engineer, OR the raiser if resolved/closed) */}
         {(hasRole('ADMIN', 'TEAM_LEAD', 'SUPPORT_ENGINEER') || (hasRole('EMPLOYEE') && (ticket.status === 'RESOLVED' || ticket.status === 'CLOSED'))) && (
@@ -302,7 +389,7 @@ export default function TicketDetailPage() {
                 value={selectedStatus}
                 onChange={e => setSelectedStatus(e.target.value)}
               >
-                {getAllowedStatuses(ticket, user, hasRole).map(opt => (
+                {getAllowedStatus(ticket, user, hasRole).map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
@@ -331,13 +418,11 @@ export default function TicketDetailPage() {
   );
 }
 
-/** Get allowed status transitions based on current status and user role */
-function getAllowedStatuses(ticket, user, hasRole) {
+function getAllowedStatus(ticket, user, hasRole) {
   const currentStatus = ticket.status;
   const isRaiser = user?.email === ticket.raisedByEmail;
 
   if (currentStatus === 'CLOSED') {
-    // Raiser (Employee) or Admin can reopen
     if ((hasRole('EMPLOYEE') && isRaiser) || hasRole('ADMIN')) {
       return [
         { value: 'CLOSED', label: 'Closed (current)' },
@@ -348,7 +433,6 @@ function getAllowedStatuses(ticket, user, hasRole) {
   }
 
   if (currentStatus === 'RESOLVED') {
-    // Raiser or Admin can Reopen.
     if ((hasRole('EMPLOYEE') && isRaiser) || hasRole('ADMIN')) {
       return [
         { value: 'RESOLVED', label: 'Resolved (current)' },
@@ -356,35 +440,31 @@ function getAllowedStatuses(ticket, user, hasRole) {
         { value: 'IN_PROGRESS', label: '↺ Reopen Ticket' },
       ];
     }
-    // Others can only Close
     return [
       { value: 'RESOLVED', label: 'Resolved (current)' },
       { value: 'CLOSED', label: 'Close Ticket' },
     ];
   }
 
-  // For all other statuses, show all options excluding Reopen
-  const allStatuses = [
+  const allStatus = [
     { value: 'OPEN', label: 'Open' },
     { value: 'PENDING_ASSIGNMENT', label: 'Pending Assignment' },
     { value: 'ASSIGNED', label: 'Assigned' },
     { value: 'IN_PROGRESS', label: 'In Progress' },
+    { value: 'ON_HOLD', label: 'On Hold' },
     { value: 'RESOLVED', label: 'Resolved' },
     { value: 'CLOSED', label: 'Closed' },
+    { value: 'CANCELLED', label: 'Cancelled' },
   ];
 
-  return allStatuses
-    .filter(s => s.value !== 'IN_PROGRESS') // Reopen is only for Resolved/Closed
-    .map(s => s.value === currentStatus ? { ...s, label: s.label + ' (current)' } : s);
+  return allStatus.map(s => s.value === currentStatus ? { ...s, label: s.label + ' (current)' } : s);
 }
 
-/** Format status for display */
 function formatStatus(status) {
   if (!status) return '';
   return status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).replace(/\B\w+/g, w => w.toLowerCase());
 }
 
-/** Format ISO date string */
 function formatDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);

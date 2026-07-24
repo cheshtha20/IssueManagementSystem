@@ -16,6 +16,15 @@ public class TicketResponse {
     private final String assignedTeam;
     private final String assignedTo;
     private final LocalDateTime createdAt;
+    private final Integer progress;
+
+    // Work tracking fields
+    private final LocalDateTime assignedAt;
+    private final LocalDateTime workStartedAt;
+    private final String workStartedBy;
+    private final Long waitingTimeMinutes;
+    private final Long activeWorkTimeMinutes;
+    private final Long totalHoldDurationMinutes;
 
     public TicketResponse(String ticketId,
                           String title,
@@ -28,7 +37,14 @@ public class TicketResponse {
                           String raisedByEmail,
                           String assignedTeam,
                           String assignedTo,
-                          LocalDateTime createdAt) {
+                          LocalDateTime createdAt,
+                          Integer progress,
+                          LocalDateTime assignedAt,
+                          LocalDateTime workStartedAt,
+                          String workStartedBy,
+                          Long waitingTimeMinutes,
+                          Long activeWorkTimeMinutes,
+                          Long totalHoldDurationMinutes) {
         this.ticketId = ticketId;
         this.title = title;
         this.category = category;
@@ -41,6 +57,13 @@ public class TicketResponse {
         this.assignedTeam = assignedTeam;
         this.assignedTo = assignedTo;
         this.createdAt = createdAt;
+        this.progress = progress;
+        this.assignedAt = assignedAt;
+        this.workStartedAt = workStartedAt;
+        this.workStartedBy = workStartedBy;
+        this.waitingTimeMinutes = waitingTimeMinutes;
+        this.activeWorkTimeMinutes = activeWorkTimeMinutes;
+        this.totalHoldDurationMinutes = totalHoldDurationMinutes;
     }
 
     public String getTicketId() {
@@ -89,5 +112,33 @@ public class TicketResponse {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public Integer getProgress() {
+        return progress;
+    }
+
+    public LocalDateTime getAssignedAt() {
+        return assignedAt;
+    }
+
+    public LocalDateTime getWorkStartedAt() {
+        return workStartedAt;
+    }
+
+    public String getWorkStartedBy() {
+        return workStartedBy;
+    }
+
+    public Long getWaitingTimeMinutes() {
+        return waitingTimeMinutes;
+    }
+
+    public Long getActiveWorkTimeMinutes() {
+        return activeWorkTimeMinutes;
+    }
+
+    public Long getTotalHoldDurationMinutes() {
+        return totalHoldDurationMinutes;
     }
 }

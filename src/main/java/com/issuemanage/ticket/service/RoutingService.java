@@ -5,12 +5,10 @@ import com.issuemanage.audit.service.AuditLogService;
 import com.issuemanage.auth.model.User;
 import com.issuemanage.auth.repository.UserRepository;
 import com.issuemanage.ticket.dto.RerouteTicketRequest;
-import com.issuemanage.ticket.model.RoutingRule;
 import com.issuemanage.ticket.model.Ticket;
 import com.issuemanage.ticket.model.TicketRemark;
 import com.issuemanage.ticket.model.TicketRemarkType;
 import com.issuemanage.ticket.model.TicketStatus;
-import com.issuemanage.ticket.repository.RoutingRuleRepository;
 import com.issuemanage.ticket.repository.TicketRemarkRepository;
 import com.issuemanage.ticket.repository.TicketRepository;
 import java.util.List;
@@ -22,20 +20,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class RoutingService {
 
-    private static final int CONFIDENCE_THRESHOLD = 70;
-
-    private final RoutingRuleRepository routingRuleRepository;
     private final TicketRepository ticketRepository;
     private final TicketRemarkRepository ticketRemarkRepository;
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
 
-    public RoutingService(RoutingRuleRepository routingRuleRepository,
-                          TicketRepository ticketRepository,
+    public RoutingService(TicketRepository ticketRepository,
                           TicketRemarkRepository ticketRemarkRepository,
                           UserRepository userRepository,
                           AuditLogService auditLogService) {
-        this.routingRuleRepository = routingRuleRepository;
         this.ticketRepository = ticketRepository;
         this.ticketRemarkRepository = ticketRemarkRepository;
         this.userRepository = userRepository;
@@ -44,24 +37,12 @@ public class RoutingService {
 
     @Transactional
     public Ticket route(Ticket ticket) {
-        RoutingRule bestRule = findBestRule(ticket);
         ticket.setAssignedTeam(null);
         ticket.setAssignedTo(null);
         ticket.setStatus(TicketStatus.PENDING_ASSIGNMENT);
-        
-        if (bestRule != null && bestRule.getConfidenceScore() >= CONFIDENCE_THRESHOLD) {
-            ticket.setAssignedTeam(bestRule.getTargetTeam());
-            String message = "Routing suggested team " + bestRule.getTargetTeam()
-                    + " using keyword '" + bestRule.getKeyword()
-                    + "'. Ticket pending for manual assignment.";
-            Ticket savedTicket = ticketRepository.save(ticket);
-            logRemark(savedTicket, null, TicketRemarkType.ROUTING, message);
-            auditLogService.record(savedTicket, null, AuditActionType.ROUTING_REVIEWED, message);
-            return savedTicket;
-        }
 
         Ticket savedTicket = ticketRepository.save(ticket);
-        String message = "No confident routing rule matched. Ticket moved to pending assignment queue for manual review.";
+        String message = "Ticket moved to pending assignment queue for manual review.";
         logRemark(savedTicket, null, TicketRemarkType.ROUTING, message);
         auditLogService.record(savedTicket, null, AuditActionType.ROUTING_REVIEWED, message);
         return savedTicket;
@@ -93,17 +74,6 @@ public class RoutingService {
 
     public List<Ticket> getPendingAssignments() {
         return ticketRepository.findByStatusOrderByCreatedAtAsc(TicketStatus.PENDING_ASSIGNMENT);
-    }
-
-    private RoutingRule findBestRule(Ticket ticket) {
-        String searchableText = ((ticket.getTitle() == null ? "" : ticket.getTitle()) + " "
-                + (ticket.getDescription() == null ? "" : ticket.getDescription())).toLowerCase(Locale.ROOT);
-
-        return routingRuleRepository.findByActiveTrueOrderByConfidenceScoreDescIdAsc().stream()
-                .filter(rule -> rule.getCategory() == ticket.getCategory())
-                .filter(rule -> searchableText.contains(rule.getKeyword().toLowerCase(Locale.ROOT)))
-                .findFirst()
-                .orElse(null);
     }
 
     private void logRemark(Ticket ticket, User author, TicketRemarkType type, String message) {

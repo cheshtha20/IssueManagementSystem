@@ -40,12 +40,44 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
+    @ExceptionHandler(InvalidProgressException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidProgress(InvalidProgressException ex) {
+        return buildCleanResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidOperationException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidOperation(InvalidOperationException ex) {
+        return buildCleanResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(com.issuemanage.common.exception.AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleCustomAccessDenied(com.issuemanage.common.exception.AccessDeniedException ex) {
+        return buildCleanResponse(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
+    @ExceptionHandler(TicketNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleTicketNotFound(TicketNotFoundException ex) {
+        return buildCleanResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(WorkNotStartedException.class)
+    public ResponseEntity<Map<String, Object>> handleWorkNotStarted(WorkNotStartedException ex) {
+        return buildCleanResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
     private ResponseEntity<Map<String, Object>> buildResponse(HttpStatus status, String message) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("status", status.value());
         body.put("error", status.getReasonPhrase());
         body.put("message", message);
+        return ResponseEntity.status(status).body(body);
+    }
+
+    private ResponseEntity<Map<String, Object>> buildCleanResponse(HttpStatus status, String message) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("error", message);
+        body.put("status", status.value());
         return ResponseEntity.status(status).body(body);
     }
 }
