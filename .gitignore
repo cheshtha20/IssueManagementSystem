@@ -1,4 +1,6 @@
 /CODE_EXPLANATION.md
 /PROJECT_WORKFLOW.md
 /PROJECT_WORKING.md
-/
+frontend/node_modules
+frontend/dist
+target/
